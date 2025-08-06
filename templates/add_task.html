@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Add Task - Task Manager{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>
+            <i class="fas fa-plus"></i>
+            Add New Task
+        </h1>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <form method="POST" class="task-form">
+        <div class="form-group">
+            <label for="title">
+                <i class="fas fa-heading"></i>
+                Task Title *
+            </label>
+            <input type="text" id="title" name="title" required 
+                   placeholder="Enter task title" maxlength="255">
+        </div>
+
+        <div class="form-group">
+            <label for="description">
+                <i class="fas fa-align-left"></i>
+                Description
+            </label>
+            <textarea id="description" name="description" rows="4" 
+                      placeholder="Enter task description (optional)"></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="bucket_id">
+                    <i class="fas fa-folder"></i>
+                    Bucket
+                </label>
+                <select id="bucket_id" name="bucket_id" required>
+                    {% for bucket in buckets %}
+                        <option value="{{ bucket.id }}">{{ bucket.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="priority">
+                    <i class="fas fa-flag"></i>
+                    Priority
+                </label>
+                <select id="priority" name="priority">
+                    <option value="low">🟢 Low</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="high">🟠 High</option>
+                    <option value="urgent">🔴 Urgent</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="due_date">
+                    <i class="fas fa-calendar-alt"></i>
+                    Due Date
+                </label>
+                <input type="date" id="due_date" name="due_date">
+            </div>
+
+            <div class="form-group">
+                <label for="assigned_to">
+                    <i class="fas fa-user"></i>
+                    Assign To
+                </label>
+                <select id="assigned_to" name="assigned_to">
+                    <option value="">Unassigned</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                Create Task
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i>
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Set minimum date to today
+document.getElementById('due_date').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %} 

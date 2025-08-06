@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Task Manager{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-tasks"></i>
+                <span>Task Manager</span>
+            </div>
+            
+            {% if session.user_id %}
+            <div class="nav-menu">
+                <a href="{{ url_for('board') }}" class="nav-link">
+                    <i class="fas fa-columns"></i> Board
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link">
+                    <i class="fas fa-list"></i> List View
+                </a>
+                <a href="{{ url_for('add_task') }}" class="nav-link">
+                    <i class="fas fa-plus"></i> Add Task
+                </a>
+                {% if session.role == 'admin' %}
+                <a href="{{ url_for('admin') }}" class="nav-link">
+                    <i class="fas fa-cog"></i> Admin
+                </a>
+                {% endif %}
+                <div class="nav-user">
+                    <span class="username">
+                        <i class="fas fa-user"></i> {{ session.username }}
+                        {% if session.role == 'admin' %}
+                        <span class="admin-badge">Admin</span>
+                        {% endif %}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button class="flash-close" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Task Manager. Built with Flask & SQLite.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash');
+            flashes.forEach(flash => {
+                flash.style.opacity = '0';
+                setTimeout(() => flash.remove(), 300);
+            });
+        }, 5000);
+    </script>
+</body>
+</html> 

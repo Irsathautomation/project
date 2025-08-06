@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Task Manager{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1>
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+        </h1>
+        <a href="{{ url_for('add_task') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add New Task
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ stats.total or 0 }}</span>
+                <span class="stat-label">Total Tasks</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ stats.completed or 0 }}</span>
+                <span class="stat-label">Completed</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ stats.pending or 0 }}</span>
+                <span class="stat-label">Pending</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ stats.overdue or 0 }}</span>
+                <span class="stat-label">Overdue</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="controls-section">
+        <form method="GET" class="filters-form">
+            <div class="filter-group">
+                <label for="status">Status:</label>
+                <select id="status" name="status" onchange="this.form.submit()">
+                    <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All Tasks</option>
+                    <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="priority">Priority:</label>
+                <select id="priority" name="priority" onchange="this.form.submit()">
+                    <option value="all" {% if filter_priority == 'all' %}selected{% endif %}>All Priorities</option>
+                    <option value="urgent" {% if filter_priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                    <option value="high" {% if filter_priority == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if filter_priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if filter_priority == 'low' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sort">Sort by:</label>
+                <select id="sort" name="sort" onchange="this.form.submit()">
+                    <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Date Created</option>
+                    <option value="due_date" {% if sort_by == 'due_date' %}selected{% endif %}>Due Date</option>
+                    <option value="priority" {% if sort_by == 'priority' %}selected{% endif %}>Priority</option>
+                </select>
+            </div>
+
+            <!-- Hidden inputs to preserve other filters -->
+            {% if filter_status != 'all' %}
+                <input type="hidden" name="status" value="{{ filter_status }}">
+            {% endif %}
+            {% if filter_priority != 'all' %}
+                <input type="hidden" name="priority" value="{{ filter_priority }}">
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="tasks-section">
+        {% if tasks %}
+            <div class="tasks-list">
+                {% for task in tasks %}
+                <div class="task-item {% if task.is_done %}completed{% endif %} {% if task.due_date and task.due_date < today and not task.is_done %}overdue{% endif %}">
+                    <div class="task-main">
+                        <div class="task-checkbox">
+                            <a href="{{ url_for('toggle_task', task_id=task.id) }}" class="toggle-btn">
+                                {% if task.is_done %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% else %}
+                                    <i class="far fa-circle"></i>
+                                {% endif %}
+                            </a>
+                        </div>
+                        
+                        <div class="task-content">
+                            <h3 class="task-title">{{ task.title }}</h3>
+                            {% if task.description %}
+                                <p class="task-description">{{ task.description }}</p>
+                            {% endif %}
+                            
+                            <div class="task-meta">
+                                <span class="priority priority-{{ task.priority }}">
+                                    {% if task.priority == 'urgent' %}
+                                        <i class="fas fa-exclamation-circle"></i> Urgent
+                                    {% elif task.priority == 'high' %}
+                                        <i class="fas fa-arrow-up"></i> High
+                                    {% elif task.priority == 'medium' %}
+                                        <i class="fas fa-minus"></i> Medium
+                                    {% else %}
+                                        <i class="fas fa-arrow-down"></i> Low
+                                    {% endif %}
+                                </span>
+                                
+                                {% if task.due_date %}
+                                    <span class="due-date {% if task.due_date < today and not task.is_done %}overdue{% endif %}">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        {{ task.due_date }}
+                                    </span>
+                                {% endif %}
+                                
+                                <span class="created-date">
+                                    <i class="fas fa-clock"></i>
+                                    Created {{ task.created_at.split(' ')[0] }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="task-actions">
+                        <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('delete_task', task_id=task.id) }}" 
+                           class="btn btn-sm btn-danger"
+                           onclick="return confirm('Are you sure you want to delete this task?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <h3>No tasks found</h3>
+                <p>
+                    {% if filter_status != 'all' or filter_priority != 'all' %}
+                        No tasks match your current filters.
+                        <a href="{{ url_for('dashboard') }}">Clear filters</a>
+                    {% else %}
+                        Get started by creating your first task!
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('add_task') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Add Your First Task
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Format dates
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.due-date').forEach(function(element) {
+        const dateText = element.textContent.trim();
+        if (dateText && dateText.includes('-')) {
+            const date = new Date(dateText);
+            if (!isNaN(date.getTime())) {
+                const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                element.innerHTML = '<i class="fas fa-calendar-alt"></i> ' + date.toLocaleDateString('en-US', options);
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 
