@@ -1,0 +1,41 @@
+[
+  {
+    "sku": "CTN-001",
+    "name": "Cotton Plain Sky Blue",
+    "material": "cotton",
+    "color": "sky_blue",
+    "pattern": "plain",
+    "width_m": 1.1,
+    "price_inr": 350,
+    "stock_m": 45.0,
+    "location": "Wall-A Shelf-3",
+    "supplier": "Shree Textiles",
+    "tags": ["summer", "soft", "casual"]
+  },
+  {
+    "sku": "SLK-002",
+    "name": "Silk Embroidered Gold",
+    "material": "silk",
+    "color": "gold",
+    "pattern": "embroidered",
+    "width_m": 1.2,
+    "price_inr": 1200,
+    "stock_m": 20.0,
+    "location": "Wall-B Shelf-1",
+    "supplier": "Royal Fabrics",
+    "tags": ["luxury", "wedding", "traditional"]
+  },
+  {
+    "sku": "LIN-003",
+    "name": "Linen Striped Beige",
+    "material": "linen",
+    "color": "beige",
+    "pattern": "striped",
+    "width_m": 1.0,
+    "price_inr": 500,
+    "stock_m": 30.0,
+    "location": "Wall-A Shelf-5",
+    "supplier": "Eco Textiles",
+    "tags": ["natural", "casual", "breathable"]
+  }
+]

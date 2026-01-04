@@ -6,7 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import toast, { Toaster } from 'react-hot-toast';
-import { FaCalendarAlt, FaList, FaTachometerAlt, FaRobot, FaPlus, FaEdit, FaTrash, FaGoogle } from 'react-icons/fa';
+import { FaCalendarAlt, FaList, FaTachometerAlt, FaRobot, FaPlus, FaEdit, FaTrash, FaGoogle, FaMoneyBillWave } from 'react-icons/fa';
 
 interface Event {
   id: string;
@@ -16,15 +16,35 @@ interface Event {
   description?: string;
 }
 
+interface Product {
+  sku: string;
+  name: string;
+  price_inr: number;
+  stock_m: number;
+}
+
+interface BillItem {
+  sku: string;
+  name: string;
+  qty: number;
+  price: number;
+  total: number;
+}
+
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [view, setView] = useState<'dashboard' | 'calendar' | 'events' | 'suggestions'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'calendar' | 'events' | 'suggestions' | 'billing'>('dashboard');
   const [newEvent, setNewEvent] = useState({ time: '', title: '', description: '' });
   const [editing, setEditing] = useState<Event | null>(null);
+  const [inventory, setInventory] = useState<Product[]>([]);
+  const [bill, setBill] = useState<BillItem[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [qty, setQty] = useState<number>(1);
 
   useEffect(() => {
     fetchEvents();
+    fetchInventory();
     const interval = setInterval(fetchEvents, 10000); // poll every 10s for real-time
     return () => clearInterval(interval);
   }, []);
@@ -33,6 +53,12 @@ export default function Home() {
     const res = await fetch('/api/schedule');
     const data = await res.json();
     setEvents(data);
+  };
+
+  const fetchInventory = async () => {
+    const res = await fetch('/api/inventory');
+    const data = await res.json();
+    setInventory(data);
   };
 
   useEffect(() => {
@@ -122,6 +148,29 @@ export default function Home() {
     window.open(url, '_blank');
   };
 
+  const addToBill = () => {
+    if (!selectedProduct || qty <= 0) return;
+    const product = inventory.find(p => p.sku === selectedProduct);
+    if (!product) return;
+    const total = product.price_inr * qty;
+    const item: BillItem = {
+      sku: product.sku,
+      name: product.name,
+      qty,
+      price: product.price_inr,
+      total
+    };
+    setBill([...bill, item]);
+    setSelectedProduct('');
+    setQty(1);
+    toast.success('Added to bill!');
+  };
+
+  const removeFromBill = (index: number) => {
+    setBill(bill.filter((_, i) => i !== index));
+    toast.success('Removed from bill!');
+  };
+
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       <Toaster />
@@ -140,6 +189,9 @@ export default function Home() {
           </button>
           <button onClick={() => setView('suggestions')} className={`flex items-center w-full p-3 mb-2 rounded ${view === 'suggestions' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
             <FaRobot className="mr-3" /> AI Suggestions
+          </button>
+          <button onClick={() => setView('billing')} className={`flex items-center w-full p-3 mb-2 rounded ${view === 'billing' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
+            <FaMoneyBillWave className="mr-3" /> Billing
           </button>
         </nav>
       </div>
@@ -302,6 +354,67 @@ export default function Home() {
                   <li key={i} className="py-2 border-b border-gray-600 text-gray-200">{sug}</li>
                 ))}
               </ul>
+            </div>
+          </div>
+        )}
+
+        {view === 'billing' && (
+          <div>
+            <h2 className="text-3xl font-bold mb-6 text-blue-400">Billing</h2>
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600 mb-6">
+              <h3 className="text-xl font-semibold mb-4 text-blue-300">Add Product to Bill</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <select
+                  value={selectedProduct}
+                  onChange={(e) => setSelectedProduct(e.target.value)}
+                  className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                >
+                  <option value="">Select Product</option>
+                  {inventory.map(product => (
+                    <option key={product.sku} value={product.sku}>{product.name} - ₹{product.price_inr}/m</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  placeholder="Quantity (m)"
+                  value={qty}
+                  onChange={(e) => setQty(Number(e.target.value))}
+                  className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                  min="0.1"
+                  step="0.1"
+                />
+                <button onClick={addToBill} className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-500"><FaPlus className="inline mr-2" />Add to Bill</button>
+              </div>
+            </div>
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
+              <h3 className="text-xl font-semibold mb-4 text-blue-300">Current Bill</h3>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-gray-600">
+                    <th className="py-2 text-blue-300">Product</th>
+                    <th className="py-2 text-blue-300">Qty (m)</th>
+                    <th className="py-2 text-blue-300">Price</th>
+                    <th className="py-2 text-blue-300">Total</th>
+                    <th className="py-2 text-blue-300">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.map((item, index) => (
+                    <tr key={index} className="border-b border-gray-600">
+                      <td className="py-2 text-gray-200">{item.name}</td>
+                      <td className="py-2 text-gray-200">{item.qty}</td>
+                      <td className="py-2 text-gray-200">₹{item.price}</td>
+                      <td className="py-2 text-gray-200">₹{item.total}</td>
+                      <td className="py-2">
+                        <button onClick={() => removeFromBill(index)} className="text-red-400 hover:text-red-300"><FaTrash /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-4 text-right">
+                <strong className="text-xl text-green-400">Final Bill: ₹{bill.reduce((sum, item) => sum + item.total, 0)}</strong>
+              </div>
             </div>
           </div>
         )}
