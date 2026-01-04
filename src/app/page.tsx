@@ -6,7 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import toast, { Toaster } from 'react-hot-toast';
-import { FaCalendarAlt, FaList, FaTachometerAlt, FaRobot, FaPlus, FaEdit, FaTrash, FaGoogle, FaMoneyBillWave } from 'react-icons/fa';
+import { FaCalendarAlt, FaList, FaTachometerAlt, FaRobot, FaPlus, FaEdit, FaTrash, FaGoogle, FaMoneyBillWave, FaBoxes } from 'react-icons/fa';
 
 interface Event {
   id: string;
@@ -34,13 +34,15 @@ interface BillItem {
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [view, setView] = useState<'dashboard' | 'calendar' | 'events' | 'suggestions' | 'billing'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'calendar' | 'events' | 'suggestions' | 'billing' | 'stocks'>('dashboard');
   const [newEvent, setNewEvent] = useState({ time: '', title: '', description: '' });
   const [editing, setEditing] = useState<Event | null>(null);
   const [inventory, setInventory] = useState<Product[]>([]);
   const [bill, setBill] = useState<BillItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [qty, setQty] = useState<number>(1);
+  const [newStock, setNewStock] = useState({ sku: '', name: '', purchasePrice: 0, sellingPrice: 0, stockCount: 0 });
+  const [updateStock, setUpdateStock] = useState({ sku: '', addCount: 0 });
 
   useEffect(() => {
     fetchEvents();
@@ -171,6 +173,64 @@ export default function Home() {
     toast.success('Removed from bill!');
   };
 
+  const addNewStock = async () => {
+    if (!newStock.sku || !newStock.name || newStock.purchasePrice <= 0 || newStock.sellingPrice <= 0 || newStock.stockCount < 0) return;
+    const stock = {
+      sku: newStock.sku,
+      name: newStock.name,
+      material: 'unknown', // default
+      color: 'unknown',
+      pattern: 'unknown',
+      width_m: 1, // default
+      price_inr: newStock.sellingPrice,
+      stock_m: newStock.stockCount,
+      location: 'New',
+      supplier: 'Unknown',
+      tags: []
+    };
+    const res = await fetch('/api/inventory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stock),
+    });
+    if (res.ok) {
+      fetchInventory();
+      setNewStock({ sku: '', name: '', purchasePrice: 0, sellingPrice: 0, stockCount: 0 });
+      toast.success('Stock added!');
+    }
+  };
+
+  const purchaseStock = async () => {
+    if (!updateStock.sku || updateStock.addCount <= 0) return;
+    const res = await fetch('/api/inventory', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sku: updateStock.sku, addStock: updateStock.addCount }),
+    });
+    if (res.ok) {
+      fetchInventory();
+      setUpdateStock({ sku: '', addCount: 0 });
+      toast.success('Stock updated!');
+    }
+  };
+
+  const finalizeBill = async () => {
+    for (const item of bill) {
+      const res = await fetch('/api/inventory', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku: item.sku, addStock: -item.qty }),
+      });
+      if (!res.ok) {
+        toast.error('Failed to update stock for ' + item.name);
+        return;
+      }
+    }
+    setBill([]);
+    fetchInventory();
+    toast.success('Bill finalized and stock updated!');
+  };
+
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       <Toaster />
@@ -192,6 +252,9 @@ export default function Home() {
           </button>
           <button onClick={() => setView('billing')} className={`flex items-center w-full p-3 mb-2 rounded ${view === 'billing' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
             <FaMoneyBillWave className="mr-3" /> Billing
+          </button>
+          <button onClick={() => setView('stocks')} className={`flex items-center w-full p-3 mb-2 rounded ${view === 'stocks' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
+            <FaBoxes className="mr-3" /> Stocks
           </button>
         </nav>
       </div>
@@ -414,11 +477,92 @@ export default function Home() {
               </table>
               <div className="mt-4 text-right">
                 <strong className="text-xl text-green-400">Final Bill: ₹{bill.reduce((sum, item) => sum + item.total, 0)}</strong>
+                <button onClick={finalizeBill} className="ml-4 bg-green-600 text-white px-6 py-3 rounded hover:bg-green-500">Finalize Bill</button>
               </div>
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
+
+        {view === 'stocks' && (
+          <div>
+            <h2 className="text-3xl font-bold mb-6 text-blue-400">Stocks Management</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
+                <h3 className="text-xl font-semibold mb-4 text-blue-300">Current Stocks</h3>
+                <ul>
+                  {inventory.map(stock => (
+                    <li key={stock.sku} className="py-2 border-b border-gray-600 text-gray-200">
+                      <strong>{stock.sku}</strong> - {stock.name} - Stock: {stock.stock_m}m - Price: ₹{stock.price_inr}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-6">
+                <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
+                  <h3 className="text-xl font-semibold mb-4 text-blue-300">Add New Stock</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <input
+                      type="text"
+                      placeholder="SKU"
+                      value={newStock.sku}
+                      onChange={(e) => setNewStock({ ...newStock, sku: e.target.value })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Stock Name"
+                      value={newStock.name}
+                      onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Purchase Price"
+                      value={newStock.purchasePrice}
+                      onChange={(e) => setNewStock({ ...newStock, purchasePrice: Number(e.target.value) })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Selling Price"
+                      value={newStock.sellingPrice}
+                      onChange={(e) => setNewStock({ ...newStock, sellingPrice: Number(e.target.value) })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Initial Stock Count (m)"
+                      value={newStock.stockCount}
+                      onChange={(e) => setNewStock({ ...newStock, stockCount: Number(e.target.value) })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    />
+                    <button onClick={addNewStock} className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-500"><FaPlus className="inline mr-2" />Add Stock</button>
+                  </div>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
+                  <h3 className="text-xl font-semibold mb-4 text-blue-300">Purchase More Stock</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <select
+                      value={updateStock.sku}
+                      onChange={(e) => setUpdateStock({ ...updateStock, sku: e.target.value })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    >
+                      <option value="">Select Stock</option>
+                      {inventory.map(stock => (
+                        <option key={stock.sku} value={stock.sku}>{stock.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      placeholder="Add Count (m)"
+                      value={updateStock.addCount}
+                      onChange={(e) => setUpdateStock({ ...updateStock, addCount: Number(e.target.value) })}
+                      className="border border-gray-500 p-3 rounded bg-gray-600 text-white"
+                    />
+                    <button onClick={purchaseStock} className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-500"><FaPlus className="inline mr-2" />Purchase</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
