@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaCalendarAlt, FaList, FaTachometerAlt, FaRobot, FaPlus, FaEdit, FaTrash, FaGoogle } from 'react-icons/fa';
 
@@ -182,16 +184,34 @@ export default function Home() {
         {view === 'calendar' && (
           <div>
             <h2 className="text-3xl font-bold mb-6 text-blue-400">Calendar</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
-                <Calendar
-                  onChange={(value) => setSelectedDate(value as Date)}
-                  value={selectedDate}
-                  tileContent={({ date }) => {
-                    const dayEvents = events.filter(e => e.date === date.toDateString());
-                    return dayEvents.length > 0 ? <div className="text-xs bg-blue-500 rounded p-1 mt-1 text-white">{dayEvents.length}</div> : null;
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
+                <FullCalendar
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                  initialView="dayGridMonth"
+                  headerToolbar={{
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
                   }}
-                  className="react-calendar-dark"
+                  events={events.map(event => ({
+                    id: event.id,
+                    title: event.title,
+                    start: `${event.date.split(' ').slice(1, 4).join(' ')} ${event.time}`,
+                    allDay: false
+                  }))}
+                  dateClick={(info) => {
+                    const date = new Date(info.dateStr);
+                    setSelectedDate(date);
+                    setView('events'); // switch to events to add
+                  }}
+                  eventClick={(info) => {
+                    const event = events.find(e => e.id === info.event.id);
+                    if (event) editEvent(event);
+                  }}
+                  height="auto"
+                  themeSystem="standard"
+                  dayMaxEvents={true}
                 />
               </div>
               <div className="bg-gray-700 p-6 rounded-lg shadow-md border border-gray-600">
@@ -208,6 +228,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+                <button onClick={() => setView('events')} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500"><FaPlus className="inline mr-2" />Add Event</button>
               </div>
             </div>
           </div>

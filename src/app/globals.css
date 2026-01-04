@@ -52,3 +52,62 @@ body {
 .react-calendar-dark .react-calendar__month-view__weekdays {
   color: #d1d5db;
 }
+
+/* FullCalendar Dark Theme */
+.fc {
+  background: #374151;
+  color: white;
+}
+
+.fc .fc-toolbar-title {
+  color: white;
+}
+
+.fc .fc-button {
+  background: #4b5563;
+  color: white;
+  border: none;
+}
+
+.fc .fc-button:hover {
+  background: #6b7280;
+}
+
+.fc .fc-button:not(:disabled).fc-button-active {
+  background: #3b82f6;
+}
+
+.fc .fc-daygrid-day {
+  background: #4b5563;
+}
+
+.fc .fc-daygrid-day:hover {
+  background: #6b7280;
+}
+
+.fc .fc-daygrid-day-number {
+  color: white;
+}
+
+.fc .fc-event {
+  background: #3b82f6;
+  border: none;
+  color: white;
+}
+
+.fc .fc-event:hover {
+  background: #2563eb;
+}
+
+.fc .fc-col-header {
+  background: #374151;
+  color: #d1d5db;
+}
+
+.fc .fc-scrollgrid {
+  border: 1px solid #4b5563;
+}
+
+.fc .fc-day-today {
+  background: #1f2937 !important;
+}
