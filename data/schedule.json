@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "date": "Sat Jan 04 2026",
+    "time": "09:00",
+    "title": "Open shop",
+    "description": "Start the day by opening the fabric store"
+  },
+  {
+    "id": "2",
+    "date": "Sat Jan 04 2026",
+    "time": "14:00",
+    "title": "Inventory check",
+    "description": "Check stock levels for cotton fabrics"
+  }
+]
